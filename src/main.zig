@@ -2,8 +2,8 @@ const std = @import("std");
 const Random = std.rand.DefaultPrng;
 
 // Planos
-// smul -> scalar multiplication
-// finish the inverse matrix algorithm
+// smul -> scalar multiplication DONE
+// TODO finish the inverse matrix algorithm
 //
 
 fn verifyType (comptime typeA: type, comptime typeB: type, comptime fn_name: []const u8) type {
@@ -65,6 +65,17 @@ fn verifyTypeMultiplication(comptime typeA: type, comptime typeB: type) type {
     }
 
     @compileError("Error in the matrices");
+}
+
+fn verifyScalarMultiplication(comptime matType: type, comptime scaType: type) type {
+
+    const T = @typeInfo(@typeInfo(matType).Struct.fields[2].type).Pointer.child;
+
+    if ( T == scaType) {
+        return void;
+    }
+
+    @compileError("Error in one or more parameter types");
 }
 
 pub fn Matrix(comptime _rows: u64, comptime _cols: u64, comptime T: type) type {
@@ -195,6 +206,20 @@ fn __Matrix(comptime _rows: u64, comptime _cols: u64, comptime T: type, comptime
             return result;
         }
 
+        pub fn scalarMul(self: Self, b:anytype) verifyScalarMultiplication(Self, @TypeOf(b)) {
+
+            var i: usize = 0;
+            var j: usize = 0;
+
+            while (i < self.rows) : (i += 1) {
+                j = 0;
+                while (j < self.cols) : (j+= 1) {
+                    self.at(i, j).* *= b;
+                }
+            }
+
+        }
+
         pub fn transpose(self: Self) value: {
             if (self.rows != self.cols) {
                 @compileError("transposed should be used instead to create a new matrix, the inplace function only works for square matrices");
@@ -320,4 +345,11 @@ pub fn main() !void {
     e.print();
     e.deinit();
 
+
+    const f = try Matrix(2, 2, f32).init(allocator_a);
+    f.random(0, 100, random);
+    f.print();
+    const scalar: f32  = 2;
+    f.scalarMul(scalar);
+    f.print();
 }
