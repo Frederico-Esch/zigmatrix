@@ -41,10 +41,13 @@ fn verifyTypeMultiplication(comptime typeA: type, comptime typeB: type) type {
         const colsf = @typeInfo(typeA).Struct.fields[1];
         const rowsf = @typeInfo(typeB).Struct.fields[0];
         if (colsf.default_value) | dcols | {
-            const dcols_aligned = @alignCast(colsf.alignment, dcols);
+            const dcols_aligned: *const align(colsf.alignment) anyopaque = @alignCast(dcols); //colsf.alignment
             if (rowsf.default_value) |drows| {
-                const drows_aligned = @alignCast(rowsf.alignment, drows);
-                if(@ptrCast(*const rowsf.type, drows_aligned).* != @ptrCast(*const colsf.type, dcols_aligned).*) {
+                const drows_aligned: *const align(rowsf.alignment) anyopaque = @alignCast(drows); //rowsf.alignment
+
+                const drows_aligned_cast: *const rowsf.type = @ptrCast(drows_aligned);
+                const dcols_aligned_cast: *const colsf.type = @ptrCast(dcols_aligned);
+                if(drows_aligned_cast.* != dcols_aligned_cast.*) {
                     @compileError("Cols of the first matrix should be the same as the Rows of the second");
                 }
             }
@@ -54,11 +57,14 @@ fn verifyTypeMultiplication(comptime typeA: type, comptime typeB: type) type {
     const colsf = @typeInfo(typeB).Struct.fields[1];
     const rowsf = @typeInfo(typeA).Struct.fields[0];
     if (colsf.default_value) | dcols | {
-        const dcols_aligned = @alignCast(colsf.alignment, dcols);
+        const dcols_aligned: *const align(colsf.alignment) anyopaque = @alignCast(dcols); //colsf.alignment,
         if (rowsf.default_value) |drows| {
-            const drows_aligned = @alignCast(rowsf.alignment, drows);
-            const rows = @ptrCast(*const rowsf.type, drows_aligned).*;
-            const cols = @ptrCast(*const colsf.type, dcols_aligned).*;
+            const drows_aligned: *const align(rowsf.alignment) anyopaque = @alignCast(drows); //rowsf.alignment,
+            const rows_ptr:*const rowsf.type = @ptrCast(drows_aligned);
+            const cols_ptr:*const colsf.type = @ptrCast(dcols_aligned);
+
+            const rows = rows_ptr.*;
+            const cols = cols_ptr.*;
 
             return Matrix(rows, cols, T);
         }
@@ -266,12 +272,17 @@ fn __Matrix(comptime _rows: u64, comptime _cols: u64, comptime T: type, comptime
                 var negative_part: T = 1;
 
                 while (j < self.cols) : (j += 1) {
-                    positive_part *= self.at(@intCast(usize, j), @intCast(usize, @mod(i+j, self.cols))).*;
+                    const col: usize = @intCast(j);
+                    const row: usize = @intCast(@mod(i+j, self.cols));
+                    positive_part *= self.at(col, row).*;
                 }
 
                 j -= 1;
                 while (j >= 0) : (j -= 1) {
-                    negative_part *= self.at(@intCast(usize, @intCast(isize, self.rows) - j - 1), @intCast(usize, @mod(j+i, self.cols))).*;
+                    const col_isize: isize = @intCast(self.rows);
+                    const col: usize = @intCast(col_isize - j - 1);
+                    const row: usize = @intCast(@mod(j+i, self.cols));
+                    negative_part *= self.at(col, row).*;
                 }
                 result += positive_part - negative_part;
             }
@@ -312,7 +323,7 @@ pub fn main() !void {
     const a = try Matrix(3, 3, i32).init(allocator_a);
     const b = try Matrix(3, 3, i32).init(allocator_b);
 
-    var rand = Random.init(@intCast(u64, std.time.timestamp()));
+    var rand = Random.init(@intCast(std.time.timestamp()));
     const random = rand.random();
 
     a.random(0, 10, random);
