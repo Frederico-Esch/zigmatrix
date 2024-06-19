@@ -296,7 +296,7 @@ test "Sum" {
     a.random(0, 10, random);
     b.random(5, 15, random);
 
-    var c = try Matrix(3, 3, i32).from(allocator_a, .{
+    const c = try Matrix(3, 3, i32).from(allocator_a, .{
         .{ a.at(0, 0).* + b.at(0, 0).*, a.at(0, 1).* + b.at(0, 1).*, a.at(0, 2).* + b.at(0, 2).* },
         .{ a.at(1, 0).* + b.at(1, 0).*, a.at(1, 1).* + b.at(1, 1).*, a.at(1, 2).* + b.at(1, 2).* },
         .{ a.at(2, 0).* + b.at(2, 0).*, a.at(2, 1).* + b.at(2, 1).*, a.at(2, 2).* + b.at(2, 2).* },
